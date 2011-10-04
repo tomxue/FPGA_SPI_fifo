@@ -11,7 +11,7 @@ module spi_fifo3(
        clk_in,
        rst,
        clk16_out,
-       RCLOCK_wire
+       RCLOCK_in
     );
 output AEMPTY;
 output Q;
@@ -21,35 +21,32 @@ input  WCLOCK;
 input  clk_in;
 input  rst;
 output clk16_out;
-output RCLOCK_wire;
+input RCLOCK_in;
 
     wire GND_net, VCC_net;
     
     VCC VCC (.Y(VCC_net));
     GND GND (.Y(GND_net));
     fifo_sync fifo_sync_0 (.DATA(DATA), .Q(Q), .WE(VCC_net), .RE(
-        VCC_net), .WCLOCK(WCLOCK), .RCLOCK(RCLOCK_wire), .FULL(), .EMPTY(), 
+        VCC_net), .WCLOCK(WCLOCK), .RCLOCK(RCLOCK_FIFO), .FULL(), .EMPTY(), 
         .RESET(rst), .AEMPTY(AEMPTY), .AFULL());
 
 reg [5:0] count_clk_in;
 reg [39:0] count;
 reg [39:0] count_rclk;
-reg [39:0] count_aempty;
 reg count_en;
 reg count_rclk_en;
-reg count_aempty_en;
 reg clk16_out;
 
-wire RCLOCK_wire;
-assign RCLOCK_wire = count_rclk_en & clk16_out & count_aempty_en;
+wire RCLOCK_FIFO;
+assign RCLOCK_FIFO = count_rclk_en & RCLOCK_in;
 
-always@(posedge RCLOCK or negedge rst)
+always@(posedge RCLOCK_in or negedge rst)
 begin
     if(!rst)
         begin
             count_rclk <= 0;
             count_rclk_en <= 0;
-            count_aempty <= 0;
         end
     else
         begin
@@ -58,20 +55,6 @@ begin
                 count_rclk_en <= 1;
             else
                 count_rclk_en <= 0;
-
-
-            if( (!AEMPTY) && (count_aempty == 0) )
-                count_aempty <= 1;
-            else if( (count_aempty >= 1) && (count_aempty <=1024) )
-                count_aempty <= count_aempty + 1;
-            else
-                count_aempty <= 0;
-
-
-            if( (count_aempty >= 1) && (count_aempty <=1024) )
-                count_aempty_en <= 1;
-            else
-                count_aempty_en <= 0;
         end            
 end
 
